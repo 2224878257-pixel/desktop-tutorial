@@ -1,5 +1,27 @@
-# Welcome to GitHub Desktop!
+# 老侯知识训练场 · 完整版 V6
 
-This is your README. READMEs are where you can communicate what your project is and how to use it.
+## 包含功能
+- 8大知识模块，190道选择题（商业50题，其余7个模块各20题）
+- 16节短课程，带行动任务和学习完成标记
+- 今日10题、按章节练习、关键词搜索、难度筛选
+- 8道开放式实战案例与参考框架（自评，不是AI自动批改）
+- 错题本、间隔复习（答错1天后复习；连续答对后1/3/7/14天）
+- 管理者每周复盘清单
+- 学习数据、模块掌握覆盖率、JSON备份导入导出
+- 响应式布局，电脑和手机可用
 
-Write your name on line 6, save it, and then head back to GitHub Desktop.
+## GitHub Pages 更新
+1. 解压压缩包。
+2. 将 index.html、app.js、questions.js、courses.js、cases.js 五个文件上传到仓库根目录。
+3. 同名文件选择覆盖/提交；旧的 README.txt 可以保留。
+4. 等待 Pages 自动部署，刷新原网站地址。
+
+## 数据说明
+- 学习记录保存在当前浏览器 localStorage，不自动跨设备同步。
+- 首次运行会尝试读取旧版 `laohouQuizState` 累计数据和错题，但旧版没有逐题答题记录，因此无法还原完整的知识点掌握情况。
+- 更新网站前建议在旧版导出备份（若旧版有导出功能）；新旧版本的备份格式不完全兼容。
+- 简答题仅提供参考框架，不提供AI自动批改；无需API密钥。
+- 所有题目和课程可在 questions.js / courses.js / cases.js 中继续维护。
+
+## 注意
+不要上传包含密码、私密客户数据或API密钥的文件到公开GitHub仓库。
