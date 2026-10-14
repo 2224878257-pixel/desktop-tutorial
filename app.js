@@ -3,7 +3,7 @@ const MODULES=[
 {name:"AI与自动化",icon:"🤖"}, {name:"产品与一人公司",icon:"🧩"}, {name:"财务与投资基础",icon:"📊"}, {name:"团队与组织管理",icon:"👥"}
 ];
 const KEY="laohou-training-final-v6";
-const emptyState=()=>({answers:{},attempts:0,correct:0,dates:{},completedLessons:[],caseAnswers:{},checks:{},legacy:null});
+const emptyState=()=>({answers:{},attempts:0,correct:0,dates:{},completedLessons:[],caseAnswers:{},checks:{},legacy:null,rotation:[],recent:[]});
 function loadState(){
  let s;
  try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
@@ -52,15 +52,37 @@ function finishLesson(){if(!state.completedLessons.includes(lessonId))state.comp
 function filteredQuestions(){let m=el("bankModule").value,l=el("bankLevel").value,k=el("bankSearch").value.trim().toLowerCase();return QUESTION_BANK.filter(q=>(!m||q.module===m)&&(!l||q.level===l)&&(!k||(q.q+q.explain).toLowerCase().includes(k)))}
 function renderBank(){const list=filteredQuestions();el("bankTitle").textContent=el("bankModule").value||"全部知识题库";el("bankCount").textContent=`符合条件 ${list.length} 题，包含基础理解和应用判断。`;el("bankPreview").innerHTML=list.slice(0,8).map(q=>`<div class="card" style="padding:16px"><span class="tag">${q.module} · ${q.level}</span><div>${safe(q.q)}</div></div>`).join("")}
 function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+// 普通训练采用全局轮换队列：先出未展示过的题，全部展示后才开启下一轮。
+// 复习/错题属于明确选择的训练，不影响普通题库轮换。
+function rotatingPick(pool,count){
+ const unique=[...new Map(pool.map(q=>[q.id,q])).values()];
+ const seen=new Set(state.rotation||[]),recent=new Set((state.recent||[]).slice(-20));
+ let fresh=shuffle(unique.filter(q=>!seen.has(q.id)));
+ let selected=fresh.slice(0,count);
+ if(selected.length<count){
+   // 当前范围已轮换完毕时，优先选择最近未出现的题。
+   const picked=new Set(selected.map(q=>q.id));
+   const old=unique.filter(q=>!picked.has(q.id));
+   const ordered=[...shuffle(old.filter(q=>!recent.has(q.id))),...shuffle(old.filter(q=>recent.has(q.id)))];
+   selected.push(...ordered.slice(0,count-selected.length));
+ }
+ // 全局题库完整轮换后重新开始，保留最近记录用于避免跨轮紧邻重复。
+ const globalIds=new Set(QUESTION_BANK.map(q=>q.id));
+ const updated=new Set([...(state.rotation||[]).filter(id=>globalIds.has(id)),...selected.map(q=>q.id)]);
+ state.rotation=updated.size>=globalIds.size?selected.map(q=>q.id):[...updated];
+ state.recent=[...(state.recent||[]),...selected.map(q=>q.id)].slice(-40);
+ persist();
+ return selected;
+}
 function startQuiz(mode){
  let list=[];
- if(mode==="daily"){list=shuffle(dueQuestions()).slice(0,5);const used=new Set(list.map(q=>q.id));list=[...list,...shuffle(QUESTION_BANK.filter(q=>!used.has(q.id))).slice(0,10-list.length)]}
- if(mode==="random")list=shuffle(filteredQuestions()).slice(0,10);
- if(mode==="filtered")list=filteredQuestions();
- if(mode==="lesson")list=shuffle(QUESTION_BANK.filter(q=>q.module===COURSES.find(c=>c.id===lessonId).module)).slice(0,10);
- if(mode==="due")list=dueQuestions();
- if(mode==="wrong")list=wrongQuestions();
- if(mode==="management")list=QUESTION_BANK.filter(q=>q.module==="团队与组织管理");
+ if(mode==="daily")list=rotatingPick(QUESTION_BANK,10);
+ if(mode==="random")list=rotatingPick(filteredQuestions(),10);
+ if(mode==="filtered")list=rotatingPick(filteredQuestions(),Math.min(10,filteredQuestions().length));
+ if(mode==="lesson")list=rotatingPick(QUESTION_BANK.filter(q=>q.module===COURSES.find(c=>c.id===lessonId).module),10);
+ if(mode==="due")list=shuffle(dueQuestions());
+ if(mode==="wrong")list=shuffle(wrongQuestions());
+ if(mode==="management")list=rotatingPick(QUESTION_BANK.filter(q=>q.module==="团队与组织管理"),10);
  if(!list.length){alert(mode==="due"?"目前没有到期的复习题。":mode==="wrong"?"当前没有错题。":"没有符合条件的题目。");return}
  quiz=list;qi=0;session={};showView("quiz");renderQuiz();
 }
