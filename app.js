@@ -1,9 +1,9 @@
 const MODULES=[
 {name:"商业与赚钱",icon:"💰"}, {name:"销售与获客",icon:"🎯"}, {name:"表达与沟通",icon:"🗣️"}, {name:"广告与增长",icon:"📈"},
-{name:"AI与自动化",icon:"🤖"}, {name:"产品与一人公司",icon:"🧩"}, {name:"财务与投资基础",icon:"📊"}, {name:"团队与组织管理",icon:"👥"}
+{name:"AI与自动化",icon:"🤖"}, {name:"产品与一人公司",icon:"🧩"}, {name:"财务与投资基础",icon:"📊"}, {name:"团队与组织管理",icon:"👥"}, {name:"自媒体运营与流量增长",icon:"📣"}, {name:"数据分析与决策",icon:"🧮"}, {name:"职业与战略决策",icon:"🧭"}
 ];
 const KEY="laohou-training-final-v6";
-const emptyState=()=>({answers:{},attempts:0,correct:0,dates:{},completedLessons:[],caseAnswers:{},checks:{},legacy:null,rotation:[],recent:[]});
+const emptyState=()=>({answers:{},attempts:0,correct:0,dates:{},completedLessons:[],caseAnswers:{},checks:{},legacy:null,rotation:[],recent:[],creatorLogs:[]});
 function loadState(){
  let s;
  try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
@@ -31,7 +31,7 @@ function renderStats(){
  const known=a.filter(x=>x.streak>=2).length;el("statMastery").textContent=Math.round(known/QUESTION_BANK.length*100)+"%";
 }
 function init(){
- const names=[["home","首页"],["courses","课程"],["bank","题库"],["cases","实战"],["review","复习"],["management","管理"],["progress","学习数据"]];
+ const names=[["home","首页"],["courses","课程"],["bank","题库"],["cases","实战"],["creator","内容复盘"],["review","复习"],["management","管理"],["progress","学习数据"]];
  el("nav").innerHTML=names.map(([id,t])=>`<button data-nav="${id}" onclick="showView('${id}')">${t}</button>`).join("");
  const options='<option value="">全部模块</option>'+MODULES.map(m=>`<option>${m.name}</option>`).join("");
  el("courseFilter").innerHTML=options;el("bankModule").innerHTML=options;
@@ -39,7 +39,7 @@ function init(){
  el("caseSelect").innerHTML=CASES.map((c,i)=>`<option value="${i}">${i+1}. ${c.category} · ${c.q.slice(0,17)}…</option>`).join("");
  renderManagement();renderStats();showView("home");
 }
-function showView(id){view=id;document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));document.querySelectorAll("[data-nav]").forEach(b=>b.classList.toggle("active",b.dataset.nav===id));if(id==="courses")renderCourses();if(id==="bank")renderBank();if(id==="cases")renderCase();if(id==="review")renderReview();if(id==="progress")renderProgress();if(id==="management")renderManagement();if(id==="home"){initHome();renderStats()}window.scrollTo({top:0,behavior:"instant"})}
+function showView(id){view=id;document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));document.querySelectorAll("[data-nav]").forEach(b=>b.classList.toggle("active",b.dataset.nav===id));if(id==="courses")renderCourses();if(id==="bank")renderBank();if(id==="cases")renderCase();if(id==="review")renderReview();if(id==="progress")renderProgress();if(id==="management")renderManagement();if(id==="creator")renderCreator();if(id==="home"){initHome();renderStats()}window.scrollTo({top:0,behavior:"instant"})}
 function initHome(){el("homeModules").innerHTML=MODULES.map(m=>{const st=moduleStats(m.name);return `<button class="card module" onclick="openModule('${m.name}')"><span class="emoji">${m.icon}</span><h3>${m.name}</h3><small>${st.count}题 · 已掌握 ${st.known}</small><div class="bar"><div class="fill" style="width:${st.percent}%"></div></div></button>`}).join("")}
 function openModule(m){el("bankModule").value=m;showView("bank")}
 function renderCourses(){
@@ -126,3 +126,32 @@ function exportData(){const data={format:"laohou-training-v6",exportedAt:now(),s
 async function importData(e){const f=e.target.files[0];if(!f)return;try{if(f.size>3e6)throw Error("文件过大");const d=JSON.parse(await f.text());if(d.format!=="laohou-training-v6"||!d.state||!d.state.answers||!Array.isArray(d.state.completedLessons)||typeof d.state.attempts!=="number")throw Error("备份格式不正确");if(!confirm("导入将覆盖当前浏览器的学习记录，确定继续？"))return;state={...emptyState(),...d.state};persist();renderProgress();el("dataMessage").textContent="导入成功。"}catch(err){el("dataMessage").textContent="导入失败："+err.message}finally{e.target.value=""}}
 function resetAll(){if(!confirm("确认清空当前浏览器的所有学习记录？此操作无法撤销。请先导出备份。"))return;state=emptyState();persist();renderProgress();el("dataMessage").textContent="本机学习数据已清空。"}
 init();
+
+
+// 自媒体运营复盘：仅在本地保存数据，全部进入既有JSON备份。
+const CREATOR_PLATFORMS=['公众号','小红书','视频号','抖音','知乎','B站','X','闲鱼','其他'];
+function creatorEntries(){return Array.isArray(state.creatorLogs)?state.creatorLogs:[]}
+function addCreatorLog(){
+ const platform=el('creatorPlatform').value,title=el('creatorTitle').value.trim(),date=el('creatorDate').value;
+ if(!title){alert('请填写内容标题或选题');return}
+ const number=id=>{const x=Number(el(id).value);return Number.isFinite(x)?Math.max(0,Math.floor(x)):0};
+ const entry={id:'post-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),date,platform,title,
+ exposures:number('creatorViews'),reads:number('creatorReads'),engagement:number('creatorEngagement'),follows:number('creatorFollows'),inquiries:number('creatorInquiries'),leads:number('creatorLeads'),notes:el('creatorNotes').value.trim()};
+ state.creatorLogs=[entry,...creatorEntries()];persist();
+ ['creatorTitle','creatorViews','creatorReads','creatorEngagement','creatorFollows','creatorInquiries','creatorLeads','creatorNotes'].forEach(id=>el(id).value='');renderCreator();
+}
+function removeCreatorLog(id){if(!confirm('确定删除这条复盘记录？'))return;state.creatorLogs=creatorEntries().filter(x=>x.id!==id);persist();renderCreator()}
+function renderCreator(){
+ const logs=creatorEntries();const total=key=>logs.reduce((sum,r)=>sum+(Number(r[key])||0),0);
+ el('creatorCount').textContent=logs.length;el('creatorViewsTotal').textContent=total('reads').toLocaleString('zh-CN');el('creatorInquiryTotal').textContent=total('inquiries');
+ el('creatorDate').value ||= today();
+ const rows=logs.slice(0,80);
+ el('creatorList').innerHTML=rows.length?rows.map(r=>`<div class="card" style="padding:18px"><div class="inline"><span class="tag">${safe(r.platform)} · ${safe(r.date)}</span><button class="btn light" style="padding:7px 11px" onclick="removeCreatorLog('${r.id}')">删除</button></div><b>${safe(r.title)}</b><div class="muted" style="font-size:13px;margin-top:9px">曝光 ${r.exposures} · 阅读/播放 ${r.reads} · 互动 ${r.engagement} · 涨粉 ${r.follows} · 咨询 ${r.inquiries} · 有效线索 ${r.leads}</div>${r.notes?`<div class="notice" style="margin-top:10px">${safe(r.notes)}</div>`:''}</div>`).join(''):'<div class="card empty">还没有发布复盘。先记录一条最近发过的内容吧。</div>';
+}
+function exportCreatorCSV(){
+ const header=['日期','平台','标题','曝光','阅读播放','互动','新增关注','咨询','有效线索','复盘'];
+ const escapeCsv=x=>'"'+String(x??'').replaceAll('"','""')+'"';
+ const rows=creatorEntries().map(r=>[r.date,r.platform,r.title,r.exposures,r.reads,r.engagement,r.follows,r.inquiries,r.leads,r.notes]);
+ const csv='\ufeff'+[header,...rows].map(row=>row.map(escapeCsv).join(',')).join('\r\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='自媒体内容复盘_'+today()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
